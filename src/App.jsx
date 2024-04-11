@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
-import { Link } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import Layout from '@/Layout';
+import DefaultPage from '@/pages/DefaultPage';
+import CreatePostPage from '@/pages/CreatePostPage';
+import ViewPostPage from '@/pages/ViewPostPage';
+import AboutPage from '@/pages/AboutPage';
+import { format } from 'date-fns';
 
 function App() {
   const [posts, setPosts] = useState([
@@ -29,78 +35,72 @@ function App() {
       body: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quis consequatur expedita, assumenda similique non optio! Modi nesciunt excepturi corrupti atque blanditiis quo nobis, non optio quae possimus illum exercitationem ipsa!',
     },
   ]);
+
+  const [search, setSearch] = useState('');
+  const [searchedList, setSearchedList] = useState([]);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const filteredPosts = posts.filter(
+      (post) =>
+        post.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+        post.body.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+    );
+    setSearchedList(filteredPosts);
+    navigate('/');
+  }, [search, posts]);
+
+  const handleSubmitPost = (e) => {
+    e.preventDefault();
+    const id = posts.length ? posts[posts.length - 1].id + 1 : 1;
+    const datetime = format(new Date(), 'MMMM dd, yyyy pp');
+    // if object name and value(name) is same, just write 1 time.
+    const newPost = { id, title, datetime, body };
+    const allPosts = [...posts, newPost];
+    setPosts(allPosts);
+    setTitle('');
+    setBody('');
+    navigate('/');
+  };
+
+  const handleDeletePost = (id) => {
+    const filteredPosts = posts.filter((post) => Number(post.id) !== id);
+    setPosts(filteredPosts);
+    navigate('/');
+  };
+
   return (
-    <>
-      <div>
-        <div className="text-center">
-          <span className="p-2 fs-1">
-            My Blog <span className="fs-6">powered by React</span>
-          </span>
-        </div>
-        <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-5">
-          <div className="container container-fluid">
-            <div className="d-flex">
-              <input
-                className="form-control me-2"
-                type="search"
-                placeholder="Search"
-                aria-label="Search"
-                // value={search}
-                // onChange={(e) => setSearch(e.target.value)}
+    <Routes>
+      <Route
+        path="/"
+        element={<Layout search={search} setSearch={setSearch} />}
+      >
+        <Route index element={<DefaultPage posts={searchedList} />} />
+        <Route path="post/">
+          <Route
+            index
+            element={
+              <CreatePostPage
+                title={title}
+                setTitle={setTitle}
+                body={body}
+                setBody={setBody}
+                handleSubmitPost={handleSubmitPost}
               />
-            </div>
-            <button
-              className="navbar-toggler"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#navbarNavAltMarkup"
-              aria-controls="navbarNavAltMarkup"
-              aria-expanded="false"
-              aria-label="Toggle navigation"
-            >
-              <span className="navbar-toggler-icon"></span>
-            </button>
-            <div className="collapse navbar-collapse" id="navbarNavAltMarkup">
-              <div className="navbar-nav ms-auto">
-                <a className="nav-link active" aria-current="page" to="/">
-                  Home
-                </a>
-                <a className="nav-link" to="post">
-                  Post
-                </a>
-                <a className="nav-link" to="about">
-                  About
-                </a>
-              </div>
-            </div>
-          </div>
-        </nav>
-      </div>
-
-      <div className="container">
-        {posts.length > 0 ? (
-          posts.map((post, index) => (
-            <div key={index} className="mb-5 border-bottom">
-              <a to={`post/${post.id}`} href={`post/${post.id}`}>
-                <h2>{post.title}</h2>
-                <p>{post.datetime}</p>
-                <p className="text-truncate">{post.body}</p>
-              </a>
-            </div>
-          ))
-        ) : (
-          <div className="fs-3 m-5 text-center">No Posts to display</div>
-        )}
-      </div>
-
-      <div style={{ backgroundColor: '#e3f2fd', textAlign: 'center' }}>
-        <div className="container py-3">
-          <footer>
-            <div>Copyright &copy; {new Date().getFullYear()}</div>
-          </footer>
-        </div>
-      </div>
-    </>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <ViewPostPage posts={posts} handleDeletePost={handleDeletePost} />
+            }
+          />
+        </Route>
+        <Route path="about/" element={<AboutPage />} />
+      </Route>
+    </Routes>
   );
 }
 
